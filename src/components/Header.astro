@@ -1,0 +1,13 @@
+---
+interface Props {
+    title?: string;
+    subtitle?: string;
+}
+
+const { title = "Energy Advisor", subtitle = "AI-Powered Smart Energy Savings" } = Astro.props;
+---
+
+<header class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-10 text-center">
+    <h1 class="text-4xl md:text-5xl font-bold mb-2">⚡ {title}</h1>
+    <p class="text-xl opacity-90">{subtitle}</p>
+</header>

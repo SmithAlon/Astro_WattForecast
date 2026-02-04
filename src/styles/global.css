@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* Dynamic component states */
+.alert.active,
+.loading.active,
+.results.active,
+.location-results.active {
+    display: block;
+}
+
+#location-selected.active {
+    display: flex;
+}
+
+/* Alert variants */
+.alert.alert-error {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border-left: 4px solid #dc2626;
+}
+
+.alert.alert-success {
+    background-color: #f0fdf4;
+    color: #166534;
+    border-left: 4px solid #16a34a;
+}
+
+/* Metric cards (dynamically generated) */
+.metric-card {
+    background: linear-gradient(135deg, #6366f1 0%, #9333ea 100%);
+    color: white;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.metric-card .value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+}
+
+.metric-card .label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.results.active {
+    animation: fadeIn 0.5s ease-out;
+}

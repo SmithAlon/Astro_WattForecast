@@ -1,0 +1,9 @@
+---
+interface Props {
+    id?: string;
+}
+
+const { id = "alert" } = Astro.props;
+---
+
+<div id={id} class="alert hidden py-4 px-5 rounded-lg my-5"></div>

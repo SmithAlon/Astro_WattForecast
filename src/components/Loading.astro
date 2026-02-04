@@ -1,0 +1,19 @@
+---
+interface Props {
+    id?: string;
+    title?: string;
+    subtitle?: string;
+}
+
+const { 
+    id = "loading", 
+    title = "Analyzing climate data...", 
+    subtitle = "Querying Open-Meteo API and generating AI suggestion" 
+} = Astro.props;
+---
+
+<div id={id} class="loading hidden text-center p-10 bg-gray-50 rounded-2xl my-5">
+    <div class="w-12 h-12 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-5"></div>
+    <h3 class="text-xl font-semibold text-gray-700">⏳ {title}</h3>
+    <p class="text-gray-500 mt-2">{subtitle}</p>
+</div>
