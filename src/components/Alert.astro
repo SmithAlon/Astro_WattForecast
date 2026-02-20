@@ -6,4 +6,20 @@ interface Props {
 const { id = "alert" } = Astro.props;
 ---
 
-<div id={id} class="alert hidden py-4 px-5 rounded-lg my-5"></div>
+<div id={id} class="alert hidden py-4 px-5 rounded-lg my-5 mx-6 md:mx-8"></div>
+
+<script>
+    const alertEl = document.getElementById('alert');
+
+    window.addEventListener('show-alert', ((e: CustomEvent) => {
+        const { message, type = 'error' } = e.detail;
+        if (alertEl) {
+            alertEl.textContent = message;
+            alertEl.className = `py-4 px-5 rounded-lg my-5 alert alert-${type} active`;
+            setTimeout(() => {
+                alertEl.classList.remove('active');
+                alertEl.classList.add('hidden');
+            }, 5000);
+        }
+    }) as EventListener);
+</script>

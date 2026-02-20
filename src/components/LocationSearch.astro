@@ -23,46 +23,46 @@ const { quickZones = defaultQuickZones } = Astro.props;
 ---
 
 <div class="flex flex-col relative location-container">
-    <label class="font-semibold mb-2 text-gray-700 flex items-center gap-2">
+    <label class="font-semibold mb-2 text-[#9BB894] flex items-center gap-2 text-sm tracking-wide uppercase">
         <span>📍</span> Location
     </label>
-    <div class="flex gap-2">
+    <div class="flex gap-2 relative">
         <input 
             type="text" 
             id="location-search" 
             placeholder="Search any city..."
-            class="flex-1 py-3 px-4 text-base border-2 border-gray-200 rounded-lg transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            class="flex-1 py-3 px-4 text-base bg-[#0B1D0F]/80 border border-[#2D5A3D]/50 rounded-lg transition-all text-[#E8F0E4] placeholder-[#5A7D5A] focus:outline-none focus:border-[#D4A843]/60 focus:ring-2 focus:ring-[#D4A843]/15 focus:bg-[#0B1D0F]"
         >
         <button 
             type="button" 
             id="btnSearchLocation"
-            class="py-3 px-5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none rounded-lg cursor-pointer font-semibold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            class="py-3 px-5 bg-[#D4A843] hover:bg-[#E0B84D] text-[#0B1D0F] border-none rounded-lg cursor-pointer font-semibold transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(212,168,67,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
             🔍
         </button>
+        <div id="location-results" class="location-results hidden absolute top-full left-0 right-0 mt-1 bg-[#142B18] border border-[#2D5A3D]/60 rounded-lg max-h-72 overflow-y-auto z-[100] shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"></div>
     </div>
-    <div id="location-results" class="location-results hidden absolute top-full left-0 right-0 bg-white border-2 border-indigo-500 border-t-0 rounded-b-lg max-h-72 overflow-y-auto z-50 shadow-xl"></div>
     
-    <div id="location-selected" class="hidden items-center gap-3 py-2 px-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg mt-2">
+    <div id="location-selected" class="hidden items-center gap-3 py-2.5 px-4 bg-[#1A4D2E]/40 border border-[#2D5A3D]/40 rounded-lg mt-2">
         <div class="flex-1">
-            <div id="location-name" class="font-semibold text-gray-800"></div>
-            <div id="location-coords" class="text-sm text-gray-500"></div>
+            <div id="location-name" class="font-semibold text-[#E8F0E4]"></div>
+            <div id="location-coords" class="text-sm text-[#7BAF6E]"></div>
         </div>
         <button 
             type="button" 
             id="btnClearLocation"
-            class="bg-red-500 hover:bg-red-600 text-white border-none py-1 px-3 rounded cursor-pointer text-sm"
+            class="bg-red-900/60 hover:bg-red-800/80 text-red-200 border border-red-700/40 py-1 px-3 rounded cursor-pointer text-sm transition-colors"
         >
             ✕
         </button>
     </div>
     
     <div class="flex gap-2 flex-wrap mt-3">
-        <span class="text-sm text-gray-500">Quick access:</span>
+        <span class="text-xs text-[#5A7D5A] uppercase tracking-wider self-center">Quick access:</span>
         {quickZones.map((zone) => (
             <button 
                 type="button" 
-                class="quick-zone py-1.5 px-3 bg-gray-100 border-none rounded-full cursor-pointer text-sm transition-all hover:bg-gradient-to-br hover:from-indigo-500 hover:to-purple-600 hover:text-white" 
+                class="quick-zone py-1.5 px-3.5 bg-[#1A2F1E] border border-[#2D5A3D]/40 rounded-full cursor-pointer text-sm text-[#9BB894] transition-all hover:bg-[#D4A843]/15 hover:border-[#D4A843]/40 hover:text-[#D4A843]" 
                 data-zona={zone.zona} 
                 data-lat={zone.lat} 
                 data-lon={zone.lon} 
@@ -79,3 +79,175 @@ const { quickZones = defaultQuickZones } = Astro.props;
     <input type="hidden" id="lon" value="">
     <input type="hidden" id="tz" value="">
 </div>
+
+<script>
+    const locationSearch = document.getElementById('location-search') as HTMLInputElement;
+    const btnSearchLocation = document.getElementById('btnSearchLocation') as HTMLButtonElement;
+    const locationResults = document.getElementById('location-results');
+    const locationSelected = document.getElementById('location-selected');
+    const locationName = document.getElementById('location-name');
+    const locationCoords = document.getElementById('location-coords');
+    const btnClearLocation = document.getElementById('btnClearLocation');
+    const quickZones = document.querySelectorAll('.quick-zone');
+    const zonaInput = document.getElementById('zona') as HTMLInputElement;
+    const latInput = document.getElementById('lat') as HTMLInputElement;
+    const lonInput = document.getElementById('lon') as HTMLInputElement;
+    const tzInput = document.getElementById('tz') as HTMLInputElement;
+
+    const API_URL = 'http://localhost:5000';
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    interface LocationResult {
+        display: string;
+        lat: number;
+        lon: number;
+        tz: string;
+        name: string;
+        admin1?: string;
+        country: string;
+    }
+
+    async function searchLocations(query: string) {
+        if (!query || query.length < 2) {
+            locationResults?.classList.remove('active');
+            locationResults?.classList.add('hidden');
+            return;
+        }
+        
+        if (btnSearchLocation) {
+            btnSearchLocation.disabled = true;
+            btnSearchLocation.textContent = '⏳';
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/geocode?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                showLocationResults(data.results);
+            } else {
+                if (locationResults) {
+                    locationResults.innerHTML = '<div class="location-item"><em>No results found</em></div>';
+                    locationResults.classList.add('active');
+                    locationResults.classList.remove('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Error searching locations:', error);
+            window.dispatchEvent(new CustomEvent('show-alert', { detail: { message: 'Error searching locations', type: 'error' } }));
+        } finally {
+            if (btnSearchLocation) {
+                btnSearchLocation.disabled = false;
+                btnSearchLocation.textContent = '🔍';
+            }
+        }
+    }
+
+    function showLocationResults(results: LocationResult[]) {
+        if (!locationResults) return;
+        
+        locationResults.innerHTML = results.map(r => `
+            <div class="location-item" 
+                 data-name="${r.display}" 
+                 data-lat="${r.lat}" 
+                 data-lon="${r.lon}"
+                 data-tz="${r.tz}">
+                <div class="name">${r.name}</div>
+                <div class="detail">${r.admin1 ? r.admin1 + ', ' : ''}${r.country}</div>
+            </div>
+        `).join('');
+        
+        locationResults.classList.add('active');
+        locationResults.classList.remove('hidden');
+        
+        locationResults.querySelectorAll('.location-item').forEach(item => {
+            item.addEventListener('click', () => selectLocation(item as HTMLElement));
+        });
+    }
+
+    function selectLocation(item: HTMLElement) {
+        const name = item.dataset.name || '';
+        const lat = parseFloat(item.dataset.lat || '0');
+        const lon = parseFloat(item.dataset.lon || '0');
+        const tz = item.dataset.tz || '';
+        
+        if (zonaInput) zonaInput.value = name;
+        if (latInput) latInput.value = String(lat);
+        if (lonInput) lonInput.value = String(lon);
+        if (tzInput) tzInput.value = tz;
+        
+        if (locationName) locationName.textContent = name;
+        if (locationCoords) locationCoords.textContent = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+        if (locationSelected) {
+            locationSelected.classList.add('active');
+            locationSelected.classList.remove('hidden');
+            locationSelected.style.display = 'flex';
+        }
+        
+        locationResults?.classList.remove('active');
+        locationResults?.classList.add('hidden');
+        if (locationSearch) locationSearch.value = '';
+    }
+
+    function clearLocation() {
+        if (zonaInput) zonaInput.value = '';
+        if (latInput) latInput.value = '';
+        if (lonInput) lonInput.value = '';
+        if (tzInput) tzInput.value = '';
+        if (locationSelected) {
+            locationSelected.classList.remove('active');
+            locationSelected.classList.add('hidden');
+            locationSelected.style.display = 'none';
+        }
+        if (locationSearch) locationSearch.value = '';
+    }
+
+    locationSearch?.addEventListener('input', (e) => {
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchLocations((e.target as HTMLInputElement).value);
+        }, 300);
+    });
+
+    locationSearch?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchLocations(locationSearch.value);
+        }
+    });
+
+    btnSearchLocation?.addEventListener('click', () => {
+        if (locationSearch) searchLocations(locationSearch.value);
+    });
+
+    btnClearLocation?.addEventListener('click', clearLocation);
+
+    document.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('.location-container')) {
+            locationResults?.classList.remove('active');
+            locationResults?.classList.add('hidden');
+        }
+    });
+
+    quickZones.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const element = btn as HTMLElement;
+            const name = element.textContent || '';
+            
+            if (zonaInput) zonaInput.value = element.dataset.zona || '';
+            if (latInput) latInput.value = element.dataset.lat || '';
+            if (lonInput) lonInput.value = element.dataset.lon || '';
+            if (tzInput) tzInput.value = element.dataset.tz || '';
+            
+            if (locationName) locationName.textContent = name;
+            if (locationCoords) locationCoords.textContent = `Lat: ${element.dataset.lat}, Lon: ${element.dataset.lon}`;
+            if (locationSelected) {
+                locationSelected.classList.add('active');
+                locationSelected.classList.remove('hidden');
+                locationSelected.style.display = 'flex';
+            }
+            locationResults?.classList.remove('active');
+            locationResults?.classList.add('hidden');
+        });
+    });
+</script>

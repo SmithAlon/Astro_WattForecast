@@ -10,16 +10,17 @@ interface Props {
 const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
 ---
 
-<div class="bg-gray-50 p-8 rounded-2xl mb-8">
+<div class="p-6 md:p-8 mb-2">
     <form id="form">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="flex flex-col">
-                <label class="font-semibold mb-2 text-gray-700 flex items-center gap-2">
+                <label class="font-semibold mb-2 text-[#9BB894] flex items-center gap-2 text-sm tracking-wide uppercase">
                     <span>👤</span> User Type
                 </label>
                 <select 
                     id="user_type"
-                    class="py-3 px-4 text-base border-2 border-gray-200 rounded-lg transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    class="py-3 px-4 text-base bg-[#0B1D0F]/80 border border-[#2D5A3D]/50 rounded-lg transition-all text-[#E8F0E4] focus:outline-none focus:border-[#D4A843]/60 focus:ring-2 focus:ring-[#D4A843]/15 focus:bg-[#0B1D0F] appearance-none cursor-pointer"
+                    style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239BB894%22 stroke-width=%222%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1rem center;"
                 >
                     <option value="home">🏠 Home</option>
                     <option value="industry">🏭 Industry</option>
@@ -29,7 +30,7 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
             <LocationSearch />
             
             <div class="flex flex-col">
-                <label class="font-semibold mb-2 text-gray-700 flex items-center gap-2">
+                <label class="font-semibold mb-2 text-[#9BB894] flex items-center gap-2 text-sm tracking-wide uppercase">
                     <span>📅</span> Days to Project
                 </label>
                 <input 
@@ -38,26 +39,189 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
                     value={defaultDays} 
                     min={minDays} 
                     max={maxDays}
-                    class="py-3 px-4 text-base border-2 border-gray-200 rounded-lg transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    class="py-3 px-4 text-base bg-[#0B1D0F]/80 border border-[#2D5A3D]/50 rounded-lg transition-all text-[#E8F0E4] focus:outline-none focus:border-[#D4A843]/60 focus:ring-2 focus:ring-[#D4A843]/15 focus:bg-[#0B1D0F]"
                 >
-                <small class="text-gray-500 mt-1">Between {minDays} and {maxDays} days</small>
+                <small class="text-[#5A7D5A] mt-1 text-xs">Between {minDays} and {maxDays} days</small>
             </div>
         </div>
         
         <div class="flex flex-col md:flex-row gap-4">
             <button 
                 type="submit" 
-                class="flex-1 py-4 px-8 text-base font-semibold border-none rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                class="flex-1 py-4 px-8 text-base font-semibold border-none rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 bg-[#D4A843] text-[#0B1D0F] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,168,67,0.3)] hover:bg-[#E0B84D] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
                 <span>🔍</span> Analyze & Generate Suggestion
             </button>
             <button 
                 type="button" 
                 id="btnExport"
-                class="flex-1 py-4 px-8 text-base font-semibold border-none rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 bg-green-500 text-white hover:bg-green-600 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                class="flex-1 py-4 px-8 text-base font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 bg-transparent border border-[#2D5A3D]/60 text-[#7BAF6E] hover:bg-[#1A4D2E]/30 hover:border-[#7BAF6E]/50 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
                 <span>📥</span> Export CSV Data
             </button>
         </div>
     </form>
 </div>
+
+<script>
+    const API_URL = 'http://localhost:5000';
+    const form = document.getElementById('form');
+    const btnExport = document.getElementById('btnExport');
+    const zonaInput = document.getElementById('zona') as HTMLInputElement;
+    const latInput = document.getElementById('lat') as HTMLInputElement;
+    const lonInput = document.getElementById('lon') as HTMLInputElement;
+    const tzInput = document.getElementById('tz') as HTMLInputElement;
+
+    function showAlert(message: string, type = 'error') {
+        window.dispatchEvent(new CustomEvent('show-alert', { detail: { message, type } }));
+    }
+
+    function showLoading(show: boolean) {
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: { show } }));
+    }
+
+    interface AnalysisData {
+        metrics: {
+            avg_temp: number;
+            max_temp: number;
+            extreme_heat_days: number;
+            avg_radiation: number;
+            optimal_solar_days: number;
+            avg_humidity: number;
+        };
+        suggestion: string;
+        charts: {
+            temperature: string;
+            solar: string;
+        };
+    }
+
+    form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const userTypeSelect = document.getElementById('user_type') as HTMLSelectElement;
+        const daysInput = document.getElementById('days') as HTMLInputElement;
+        
+        const userType = userTypeSelect?.value;
+        const zona = zonaInput?.value;
+        const lat = latInput?.value ? parseFloat(latInput.value) : null;
+        const lon = lonInput?.value ? parseFloat(lonInput.value) : null;
+        const tz = tzInput?.value || null;
+        const days = parseInt(daysInput?.value || '30');
+        
+        if (!zona) {
+            showAlert('Please select or search for a location');
+            return;
+        }
+        
+        if (days < 7 || days > 365) {
+            showAlert('Days must be between 7 and 365');
+            return;
+        }
+        
+        showLoading(true);
+        
+        try {
+            const requestBody: Record<string, any> = {
+                user_type: userType,
+                zona: zona,
+                days: days
+            };
+            
+            if (lat !== null && lon !== null) {
+                requestBody.lat = lat;
+                requestBody.lon = lon;
+                if (tz) requestBody.tz = tz;
+            }
+            
+            const response = await fetch(`${API_URL}/api/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.dispatchEvent(new CustomEvent('show-results', { detail: data }));
+                showAlert('✅ Analysis completed successfully', 'success');
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error: any) {
+            console.error('Error:', error);
+            showAlert(`❌ Error: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    btnExport?.addEventListener('click', async () => {
+        const zona = zonaInput?.value;
+        const lat = latInput?.value ? parseFloat(latInput.value) : null;
+        const lon = lonInput?.value ? parseFloat(lonInput.value) : null;
+        const tz = tzInput?.value || null;
+        const daysInput = document.getElementById('days') as HTMLInputElement;
+        const days = parseInt(daysInput?.value || '30');
+        
+        if (!zona) {
+            showAlert('Please select or search for a location');
+            return;
+        }
+        
+        const exportBtn = btnExport as HTMLButtonElement;
+        exportBtn.disabled = true;
+        exportBtn.textContent = '⏳ Exporting...';
+        
+        try {
+            const requestBody: Record<string, any> = { zona, days };
+            if (lat !== null && lon !== null) {
+                requestBody.lat = lat;
+                requestBody.lon = lon;
+                if (tz) requestBody.tz = tz;
+            }
+            
+            const response = await fetch(`${API_URL}/api/export-csv`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error exporting CSV');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `energy_${zona}_${days}days_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showAlert('✅ CSV downloaded successfully', 'success');
+        } catch (error: any) {
+            console.error('Error:', error);
+            showAlert(`❌ Error exporting: ${error.message}`);
+        } finally {
+            exportBtn.disabled = false;
+            exportBtn.innerHTML = '<span>📥</span> Export CSV Data';
+        }
+    });
+
+    window.addEventListener('load', async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/health`);
+            if (!response.ok) throw new Error('Backend not available');
+            console.log('✅ Connected to backend');
+        } catch (error) {
+            showAlert('⚠️ Cannot connect to backend. Make sure it is running on localhost:5000');
+        }
+    });
+</script>

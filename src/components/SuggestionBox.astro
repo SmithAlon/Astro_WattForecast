@@ -7,9 +7,9 @@ interface Props {
 const { title = "AI-Personalized Suggestion", id = "suggestion" } = Astro.props;
 ---
 
-<div class="bg-gradient-to-br from-pink-400 to-rose-500 text-white p-8 rounded-2xl my-8 shadow-xl">
-    <h3 class="text-2xl font-bold mb-5 flex items-center gap-3">
-        <span>💡</span> {title}
+<div class="bg-gradient-to-br from-[#1A4D2E]/50 to-[#0B1D0F]/70 border border-[#D4A843]/20 p-6 md:p-8 rounded-2xl my-8 backdrop-blur-sm">
+    <h3 class="font-['DM_Serif_Display',serif] text-xl md:text-2xl font-normal mb-5 flex items-center gap-3 text-[#D4A843]">
+        <span class="text-2xl">💡</span> {title}
     </h3>
-    <div id={id} class="bg-white/20 p-5 rounded-xl whitespace-pre-wrap leading-relaxed backdrop-blur-sm"></div>
+    <div id={id} class="bg-[#0B1D0F]/50 border border-[#2D5A3D]/30 p-5 rounded-xl whitespace-pre-wrap leading-relaxed text-[#C5D8C0] text-[0.95rem]"></div>
 </div>

@@ -12,8 +12,26 @@ const {
 } = Astro.props;
 ---
 
-<div id={id} class="loading hidden text-center p-10 bg-gray-50 rounded-2xl my-5">
-    <div class="w-12 h-12 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-5"></div>
-    <h3 class="text-xl font-semibold text-gray-700">⏳ {title}</h3>
-    <p class="text-gray-500 mt-2">{subtitle}</p>
+<div id={id} class="loading hidden text-center p-10 bg-[#0B1D0F]/50 border border-[#2D5A3D]/30 rounded-2xl my-5 mx-6 md:mx-8 backdrop-blur-sm">
+    <div class="w-12 h-12 border-4 border-[#2D5A3D]/30 border-t-[#D4A843] rounded-full animate-spin mx-auto mb-5"></div>
+    <h3 class="text-xl font-semibold text-[#E8F0E4]">⏳ {title}</h3>
+    <p class="text-[#7BAF6E] mt-2">{subtitle}</p>
 </div>
+
+<script>
+    const loadingEl = document.getElementById('loading');
+    const resultsEl = document.getElementById('results');
+
+    window.addEventListener('toggle-loading', ((e: CustomEvent) => {
+        const { show } = e.detail;
+        if (show) {
+            loadingEl?.classList.add('active');
+            loadingEl?.classList.remove('hidden');
+            resultsEl?.classList.remove('active');
+            resultsEl?.classList.add('hidden');
+        } else {
+            loadingEl?.classList.remove('active');
+            loadingEl?.classList.add('hidden');
+        }
+    }) as EventListener);
+</script>

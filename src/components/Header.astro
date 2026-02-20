@@ -4,10 +4,13 @@ interface Props {
     subtitle?: string;
 }
 
-const { title = "Energy Advisor", subtitle = "AI-Powered Smart Energy Savings" } = Astro.props;
+const { title = "WattForecast", subtitle = "AI-Powered Smart Energy Savings" } = Astro.props;
 ---
 
-<header class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-10 text-center">
-    <h1 class="text-4xl md:text-5xl font-bold mb-2">⚡ {title}</h1>
-    <p class="text-xl opacity-90">{subtitle}</p>
+<header class="relative py-12 px-10 text-center overflow-hidden">
+    <!-- Subtle gradient line at bottom -->
+    <div class="absolute bottom-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-[#D4A843]/40 to-transparent"></div>
+    <img src="/src/assets/grafica (1).png" alt="WattForecast Logo" class="mx-auto max-w-14 mb-3 drop-shadow-[0_0_20px_rgba(212,168,67,0.4)]">
+    <h1 class="font-['DM_Serif_Display',serif] text-4xl md:text-5xl lg:text-6xl font-normal mb-3 text-[#E8F0E4] tracking-tight">{title}</h1>
+    <p class="text-base md:text-lg text-[#9BB894] tracking-[0.2em] uppercase font-light">{subtitle}</p>
 </header>
