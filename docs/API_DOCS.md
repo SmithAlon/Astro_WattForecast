@@ -21,9 +21,6 @@ pip install -r requirements.txt
 ```bash
 # Copy configuration file
 cp .env.example .env
-
-# Edit .env and add your GEMINI_API_KEY
-# Get free key at: https://aistudio.google.com/app/apikey
 ```
 
 ### 3. Run Server
@@ -111,7 +108,7 @@ Search for any location worldwide.
 
 ### 4. Full Analysis (Main Endpoint)
 
-Generate climate analysis, energy metrics, AI suggestion, and charts.
+Generate climate analysis, energy metrics, and charts.
 
 **Endpoint:** `POST /api/analyze`
 
@@ -162,7 +159,6 @@ Generate climate analysis, energy metrics, AI suggestion, and charts.
     "avg_humidity": 55.2,
     "high_demand_days": 12
   },
-  "suggestion": "### INSTALL SMART PROGRAMMABLE THERMOSTAT\n\n**Analysis:**\nWith 8 projected days...",
   "charts": {
     "temperature": "base64_encoded_image...",
     "solar": "base64_encoded_image..."
@@ -185,7 +181,6 @@ fetch('http://localhost:5000/api/analyze', {
 })
 .then(response => response.json())
 .then(data => {
-  console.log('Suggestion:', data.suggestion);
   console.log('Metrics:', data.metrics);
   
   // Display charts
@@ -267,25 +262,22 @@ CMD ["python", "energy_advisor_backend.py"]
 ### Option 2: Railway/Render
 
 1. Connect your GitHub repository
-2. Set environment variable: `GEMINI_API_KEY`
-3. Deploy automatically
+2. Deploy automatically
 
 ---
 
 ## 📝 Important Notes
 
-1. **Gemini API Key**: Free but has usage limits (15 req/min)
-2. **Cache**: System caches 100 recent queries for optimization
-3. **CORS**: Enabled for all origins (adjust in production)
-4. **Rate Limiting**: Consider adding Flask-Limiter in production
+1. **Cache**: System caches 100 recent queries for optimization
+2. **CORS**: Enabled for all origins (adjust in production)
+3. **Rate Limiting**: Consider adding Flask-Limiter in production
 
 ---
 
 ## 🆘 Support
 
 If you encounter issues:
-1. Verify your `GEMINI_API_KEY` is valid
-2. Confirm all dependencies are installed
-3. Check server logs for specific errors
+1. Confirm all dependencies are installed
+2. Check server logs for specific errors
 
 **Ready to start!** 🚀

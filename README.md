@@ -1,6 +1,6 @@
-# ⚡ WattForecast - AI-Powered Smart Energy Advisor
+# ⚡ WattForecast - Smart Energy Advisor
 
-An intelligent energy savings application that analyzes climate data and provides personalized recommendations using AI.
+An energy analysis application that provides climate-based insights and visualizations for smart energy planning.
 
 ![Astro](https://img.shields.io/badge/Astro-FF5D01?style=for-the-badge&logo=astro&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
@@ -11,7 +11,6 @@ An intelligent energy savings application that analyzes climate data and provide
 
 - 🌍 **Global Location Search** - Search any city worldwide using Open-Meteo geocoding
 - 📊 **Climate Analysis** - Get detailed climate projections for 7-365 days
-- 🤖 **AI Suggestions** - Personalized energy-saving recommendations powered by Gemini AI
 - 📈 **Visual Charts** - Temperature profile and solar potential visualizations
 - 📥 **CSV Export** - Download climate data for further analysis
 - 🏠 **User Types** - Tailored advice for homes and industries
@@ -45,7 +44,6 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
 
 # Start server
 python energy_advisor_backend.py
@@ -68,7 +66,6 @@ Backend available at: `http://localhost:5000`
 │   │   ├── LocationSearch.astro
 │   │   ├── MetricsGrid.astro
 │   │   ├── ResultsSection.astro
-│   │   └── SuggestionBox.astro
 │   ├── layouts/
 │   │   └── Layout.astro
 │   ├── pages/
@@ -84,18 +81,7 @@ Backend available at: `http://localhost:5000`
 └── package.json
 ```
 
-## 🔧 Configuration
-
-### Get Gemini API Key (Free)
-
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Create a new API key
-3. Add it to `backend/.env`:
-   ```
-   GEMINI_API_KEY=your_key_here
-   ```
-
-## 📘 API Documentation
+##  API Documentation
 
 See [docs/API_DOCS.md](docs/API_DOCS.md) for complete API reference.
 
@@ -129,7 +115,6 @@ See [docs/API_DOCS.md](docs/API_DOCS.md) for complete API reference.
 - [Flask](https://flask.palletsprojects.com/) - Python web framework
 - [Pandas](https://pandas.pydata.org/) - Data analysis
 - [Matplotlib](https://matplotlib.org/) - Chart generation
-- [Google Gemini](https://ai.google.dev/) - AI suggestions
 - [Open-Meteo](https://open-meteo.com/) - Climate data API
 
 ## 📄 License
@@ -139,4 +124,3 @@ MIT License © 2026 - feel free to use for personal or commercial projects.
 ## 🙏 Credits
 
 - Climate data provided by [Open-Meteo](https://open-meteo.com/)
-- AI powered by [Google Gemini](https://ai.google.dev/)

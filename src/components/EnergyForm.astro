@@ -50,7 +50,7 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
                 type="submit" 
                 class="flex-1 py-4 px-8 text-base font-semibold border-none rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 bg-[#D4A843] text-[#0B1D0F] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,168,67,0.3)] hover:bg-[#E0B84D] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-                <span>🔍</span> Analyze & Generate Suggestion
+                <span>🔍</span> Analyze Climate Data
             </button>
             <button 
                 type="button" 
@@ -89,7 +89,6 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
             optimal_solar_days: number;
             avg_humidity: number;
         };
-        suggestion: string;
         charts: {
             temperature: string;
             solar: string;

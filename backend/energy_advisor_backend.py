@@ -1,9 +1,9 @@
 """
 BACKEND - Energy Recommendations System
-Integration: Open-Meteo API + Gemini AI
+Integration: Open-Meteo API
 """
 
-from flask import Flask, request, jsonify, send_file
+from flask import Flask
 from dotenv import load_dotenv
 load_dotenv()
 from flask_cors import CORS
@@ -12,7 +12,6 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')  # Non-GUI backend for server
 import matplotlib.pyplot as plt
-import google.generativeai as genai
 from datetime import datetime, timedelta
 import io
 import base64
@@ -24,10 +23,6 @@ from functools import lru_cache
 # ==========================================
 app = Flask(__name__)
 CORS(app)  # Allow requests from frontend
-
-# Configure Gemini (IMPORTANT! Get your key at https://aistudio.google.com/app/apikey)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_API_KEY_HERE")
-genai.configure(api_key=GEMINI_API_KEY)
 
 # ==========================================
 # CONSTANTS AND CONFIGURATION
@@ -153,80 +148,6 @@ def calculate_energy_metrics(df):
     return metrics
 
 
-def generate_ai_suggestion(metrics, user_type, zone, days):
-    """
-    Generate personalized suggestion using Gemini AI
-    """
-    
-    # User-specific context
-    user_context = {
-        "home": """
-        Focus on practical actions for families:
-        - Efficient use of air conditioning and fans
-        - Taking advantage of natural light and ventilation
-        - Consideration of residential solar panels
-        - Adjusting appliance usage schedules
-        """,
-        "industry": """
-        Focus on industrial optimization:
-        - Load shifting to off-peak hours
-        - Predictive maintenance of HVAC systems
-        - Cogeneration and energy storage
-        - Zone-based climate control automation
-        """
-    }
-    
-    prompt = f"""
-You are a certified energy advisor. Analyze this climate data for {zone.title()} for the next {days} days and generate ONE energy saving suggestion.
-
-**USER TYPE:** {user_type.upper()}
-**ZONE:** {zone.title()}
-**PERIOD:** {days} days
-
-**CLIMATE DATA:**
-- Average temperature: {metrics['avg_temp']}°C
-- Maximum expected temperature: {metrics['max_temp']}°C
-- Extreme heat days (>35°C): {metrics['extreme_heat_days']}
-- Cooling degree days (CDD): {metrics['cdd_total']}
-- Average solar radiation: {metrics['avg_radiation']} MJ/m²
-- Effective solar potential: {metrics['avg_solar_potential']} MJ/m²
-- Optimal solar days: {metrics['optimal_solar_days']}
-- High demand days: {metrics['high_demand_days']}
-- Average relative humidity: {metrics['avg_humidity']}%
-
-{user_context[user_type]}
-
-**RESPONSE FORMAT (STRICTLY):**
-
-### [Impactful Suggestion Title]
-
-**Analysis:**
-[2-3 sentences linking climate data to specific energy impact]
-
-**Recommended Action:**
-[Clear and specific description of WHAT to do and HOW to implement it]
-
-**Estimated Savings:**
-[Approximate percentage or amount in USD, with justification based on data]
-
-**Priority:** [High/Medium/Low based on impact vs effort]
-
----
-IMPORTANT: 
-- Maximum 200 words total
-- Use the numerical data provided
-- Be specific with measurable actions
-- Don't invent data I didn't give you
-"""
-    
-    try:
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"⚠️ Error generating suggestion: {str(e)}\n\nBasic suggestion: Given the projected climate conditions, consider optimizing climate control usage during peak hours."
-
-
 def generate_charts(df, zone):
     """
     Generate charts in base64 format to send to frontend
@@ -306,212 +227,20 @@ def generate_charts(df, zone):
 
 
 # ==========================================
-# API ENDPOINTS
-# ==========================================
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Verify the server is running"""
-    return jsonify({
-        "status": "ok",
-        "message": "Energy Advisor Backend active",
-        "timestamp": datetime.now().isoformat()
-    })
-
-
-@app.route('/api/zones', methods=['GET'])
-def get_zones():
-    """Return available zones"""
-    zones = [{"id": k, "name": k.replace("-", " ").title()} for k in ZONE_COORDINATES.keys()]
-    return jsonify({"zones": zones})
-
-
-@app.route('/api/geocode', methods=['GET'])
-def geocode():
-    """
-    Search locations by name using Open-Meteo geocoding API
-    
-    Query params:
-        q: Search term (city name, address, etc.)
-    """
-    query = request.args.get('q', '').strip()
-    
-    if not query or len(query) < 2:
-        return jsonify({"results": [], "error": "Search term must have at least 2 characters"}), 400
-    
-    try:
-        # Use Open-Meteo geocoding API
-        response = requests.get(
-            "https://geocoding-api.open-meteo.com/v1/search",
-            params={
-                "name": query,
-                "count": 10,
-                "language": "en",
-                "format": "json"
-            }
-        )
-        response.raise_for_status()
-        data = response.json()
-        
-        results = []
-        if "results" in data:
-            for r in data["results"]:
-                results.append({
-                    "name": r.get("name", ""),
-                    "country": r.get("country", ""),
-                    "admin1": r.get("admin1", ""),  # State/Province
-                    "lat": r.get("latitude"),
-                    "lon": r.get("longitude"),
-                    "tz": r.get("timezone", DEFAULT_TIMEZONE),
-                    "display": f"{r.get('name', '')}, {r.get('admin1', '')} - {r.get('country', '')}"
-                })
-        
-        return jsonify({"results": results})
-    
-    except Exception as e:
-        return jsonify({"results": [], "error": str(e)}), 500
-
-
-@app.route('/api/analyze', methods=['POST'])
-def analyze():
-    """
-    Main endpoint: Analyze climate data and generate recommendation
-    
-    Expected body (JSON):
-    {
-        "user_type": "home" or "industry",
-        "zona": "new-york" or custom name,
-        "days": 30,
-        "lat": 40.7128,  // optional: latitude for custom zone
-        "lon": -74.0060,  // optional: longitude for custom zone
-        "tz": "America/New_York"  // optional: timezone
-    }
-    """
-    try:
-        # Validate input data
-        data = request.json
-        user_type = data.get('user_type', 'home').lower()
-        zone = data.get('zona', 'new-york')
-        days = int(data.get('days', 30))
-        
-        # Optional coordinates for custom zones
-        lat = data.get('lat')
-        lon = data.get('lon')
-        tz = data.get('tz')
-        
-        if user_type not in ['home', 'industry']:
-            return jsonify({"error": "user_type must be 'home' or 'industry'"}), 400
-        
-        # Validate predefined zone or coordinates
-        zone_lower = zone.lower()
-        if zone_lower not in ZONE_COORDINATES and (lat is None or lon is None):
-            return jsonify({"error": f"Zone '{zone}' is not predefined. Provide coordinates (lat, lon) or search for a location."}), 400
-        
-        if not 7 <= days <= 365:
-            return jsonify({"error": "Days range must be between 7 and 365"}), 400
-        
-        # 1. Get climate data
-        df = get_climate_data(zone, days, lat, lon, tz)
-        
-        # 2. Calculate metrics
-        metrics = calculate_energy_metrics(df)
-        
-        # 3. Generate AI suggestion
-        suggestion = generate_ai_suggestion(metrics, user_type, zone, days)
-        
-        # 4. Generate charts
-        charts = generate_charts(df, zone)
-        
-        # 5. Prepare response
-        response = {
-            "success": True,
-            "timestamp": datetime.now().isoformat(),
-            "parameters": {
-                "user_type": user_type,
-                "zone": zone,
-                "days": days
-            },
-            "metrics": metrics,
-            "suggestion": suggestion,
-            "charts": {
-                "temperature": charts['temperature'],
-                "solar": charts['solar']
-            }
-        }
-        
-        return jsonify(response)
-    
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }), 500
-
-
-@app.route('/api/export-csv', methods=['POST'])
-def export_csv():
-    """
-    Generate and download CSV with climate data
-    
-    Expected body (JSON):
-    {
-        "zona": "new-york",
-        "days": 30,
-        "lat": 40.7128,  // optional
-        "lon": -74.0060,  // optional
-        "tz": "America/New_York"  // optional
-    }
-    """
-    try:
-        data = request.json
-        zone = data.get('zona', 'new-york')
-        days = int(data.get('days', 30))
-        lat = data.get('lat')
-        lon = data.get('lon')
-        tz = data.get('tz')
-        
-        # Get data
-        df = get_climate_data(zone, days, lat, lon, tz)
-        
-        # Convert to CSV
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
-        
-        # Return as downloadable file
-        return send_file(
-            io.BytesIO(csv_buffer.getvalue().encode()),
-            mimetype='text/csv',
-            as_attachment=True,
-            download_name=f'climate_data_{zone}_{days}days_{datetime.now().strftime("%Y%m%d")}.csv'
-        )
-    
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-# ==========================================
 # RUN SERVER
 # ==========================================
 if __name__ == '__main__':
+    # Register API routes (done here to avoid circular imports)
+    from api import api_bp
+    app.register_blueprint(api_bp)
+    
     print("=" * 60)
     print("🚀 Energy Advisor Backend - Starting server...")
     print("=" * 60)
     print(f"📍 Predefined zones: {list(ZONE_COORDINATES.keys())}")
     print(f"🌍 Global location search: ENABLED")
-    print(f"🤖 AI Model: Gemini 2.0 Flash")
     print(f"🌐 Climate API: Open-Meteo")
     print("=" * 60)
-    
-    # Verify API key
-    if GEMINI_API_KEY == "YOUR_API_KEY_HERE":
-        print("⚠️  WARNING: Configure your GEMINI_API_KEY before production!")
-        print("   Get your free key at: https://makersuite.google.com/app/apikey")
-        print("=" * 60)
     
     # Development mode
     app.run(debug=True, host='0.0.0.0', port=5000)

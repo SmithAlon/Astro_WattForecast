@@ -1,6 +1,5 @@
 ---
 import MetricsGrid from './MetricsGrid.astro';
-import SuggestionBox from './SuggestionBox.astro';
 import ChartsGrid from './ChartsGrid.astro';
 
 interface Props {
@@ -17,7 +16,6 @@ const { id = "results" } = Astro.props;
     </div>
     <MetricsGrid />
     <ChartsGrid />
-    <SuggestionBox />
 </div>
 
 <script>
@@ -32,7 +30,6 @@ const { id = "results" } = Astro.props;
             optimal_solar_days: number;
             avg_humidity: number;
         };
-        suggestion: string;
         charts: {
             temperature: string;
             solar: string;
@@ -73,9 +70,6 @@ const { id = "results" } = Astro.props;
                 </div>
             `;
         }
-        
-        const suggestionEl = document.getElementById('suggestion');
-        if (suggestionEl) suggestionEl.textContent = data.suggestion;
         
         const chartTemp = document.getElementById('chart-temp') as HTMLImageElement;
         const chartSolar = document.getElementById('chart-solar') as HTMLImageElement;
