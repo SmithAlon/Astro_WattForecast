@@ -17,13 +17,13 @@ const { tempChartId = "chart-temp", solarChartId = "chart-solar" } = Astro.props
             <h3 class="text-base font-semibold text-[#D4A843] mb-4 flex items-center gap-2 tracking-wide">
                 <span>🌡️</span> Thermal Profile
             </h3>
-            <img id={tempChartId} alt="Temperature chart" class="w-full rounded-xl border border-[#2D5A3D]/20">
+            <canvas id={tempChartId} class="w-full rounded-xl border border-[#2D5A3D]/20"></canvas>
         </div>
         <div class="bg-[#0B1D0F]/60 border border-[#2D5A3D]/30 p-5 rounded-2xl backdrop-blur-sm">
             <h3 class="text-base font-semibold text-[#D4A843] mb-4 flex items-center gap-2 tracking-wide">
                 <span>☀️</span> Solar Potential
             </h3>
-            <img id={solarChartId} alt="Solar chart" class="w-full rounded-xl border border-[#2D5A3D]/20">
+            <canvas id={solarChartId} class="w-full rounded-xl border border-[#2D5A3D]/20"></canvas>
         </div>
     </div>
 </div>

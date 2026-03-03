@@ -19,28 +19,28 @@ const { id = "results" } = Astro.props;
 </div>
 
 <script>
+    import { Chart, registerables } from 'chart.js';
+    import type { ClimateRow, EnergyMetrics } from '../lib/climate-service';
+    import { rollingAverage } from '../lib/climate-service';
+
+    Chart.register(...registerables);
+
     const resultsEl = document.getElementById('results');
 
+    let tempChart: Chart | null = null;
+    let solarChart: Chart | null = null;
+
     interface AnalysisData {
-        metrics: {
-            avg_temp: number;
-            max_temp: number;
-            extreme_heat_days: number;
-            avg_radiation: number;
-            optimal_solar_days: number;
-            avg_humidity: number;
-        };
-        charts: {
-            temperature: string;
-            solar: string;
-        };
+        metrics: EnergyMetrics;
+        climateData: ClimateRow[];
+        zone: string;
     }
 
     window.addEventListener('show-results', ((e: CustomEvent<AnalysisData>) => {
         const data = e.detail;
         const m = data.metrics;
         const metricsEl = document.getElementById('metrics');
-        
+
         if (metricsEl) {
             metricsEl.innerHTML = `
                 <div class="metric-card">
@@ -70,13 +70,119 @@ const { id = "results" } = Astro.props;
                 </div>
             `;
         }
-        
-        const chartTemp = document.getElementById('chart-temp') as HTMLImageElement;
-        const chartSolar = document.getElementById('chart-solar') as HTMLImageElement;
-        
-        if (chartTemp) chartTemp.src = `data:image/png;base64,${data.charts.temperature}`;
-        if (chartSolar) chartSolar.src = `data:image/png;base64,${data.charts.solar}`;
-        
+
+        const rows = data.climateData;
+        const labels = rows.map((r) => r.Date);
+        const maxTemps = rows.map((r) => r.Max_Temp);
+        const trend = rollingAverage(rows.map((r) => r.Avg_Temp), 7);
+        const radiation = rows.map((r) => r.Solar_Radiation);
+        const cloudCover = rows.map((r) => r.Cloud_Cover);
+
+        // Temperature chart
+        const tempCanvas = document.getElementById('chart-temp') as HTMLCanvasElement;
+        if (tempCanvas) {
+            if (tempChart) tempChart.destroy();
+            tempChart = new Chart(tempCanvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Maximum Temperature',
+                            data: maxTemps,
+                            borderColor: '#E74C3C',
+                            backgroundColor: 'rgba(231,76,60,0.15)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: {
+                                target: { value: 24 },
+                                above: 'rgba(231,76,60,0.2)',
+                                below: 'transparent',
+                            },
+                        },
+                        {
+                            label: 'Trend (7 days)',
+                            data: trend,
+                            borderColor: '#C0392B',
+                            borderWidth: 2,
+                            borderDash: [6, 3],
+                            pointRadius: 0,
+                            fill: false,
+                        },
+                        {
+                            label: 'Comfort Threshold (24°C)',
+                            data: [{ x: labels[0], y: 24 }, { x: labels[labels.length - 1], y: 24 }],
+                            borderColor: '#27AE60',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            pointRadius: 0,
+                            fill: false,
+                        },
+                        {
+                            label: 'Extreme Heat (35°C)',
+                            data: [{ x: labels[0], y: 35 }, { x: labels[labels.length - 1], y: 35 }],
+                            borderColor: '#E67E22',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            pointRadius: 0,
+                            fill: false,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#E8F0E4' } } },
+                    scales: {
+                        x: { ticks: { color: '#9BB894', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#9BB894' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Temperature (°C)', color: '#9BB894' } },
+                    },
+                },
+            });
+        }
+
+        // Solar chart
+        const solarCanvas = document.getElementById('chart-solar') as HTMLCanvasElement;
+        if (solarCanvas) {
+            if (solarChart) solarChart.destroy();
+            solarChart = new Chart(solarCanvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Solar Radiation (MJ/m²)',
+                            data: radiation,
+                            borderColor: '#F39C12',
+                            backgroundColor: 'rgba(243,156,18,0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            yAxisID: 'y',
+                            fill: false,
+                        },
+                        {
+                            label: 'Cloud Cover (%)',
+                            data: cloudCover,
+                            borderColor: '#7F8C8D',
+                            backgroundColor: 'rgba(127,140,141,0.3)',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            yAxisID: 'y1',
+                            fill: true,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#E8F0E4' } } },
+                    scales: {
+                        x: { ticks: { color: '#9BB894', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#F39C12' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Solar Radiation (MJ/m²)', color: '#F39C12' } },
+                        y1: { position: 'right', ticks: { color: '#7F8C8D' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Cloud Cover (%)', color: '#7F8C8D' }, min: 0, max: 100 },
+                    },
+                },
+            });
+        }
+
         resultsEl?.classList.add('active');
         resultsEl?.classList.remove('hidden');
         resultsEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
