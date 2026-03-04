@@ -81,6 +81,9 @@ const { quickZones = defaultQuickZones } = Astro.props;
 </div>
 
 <script>
+    import { searchLocations as searchLocationsAPI } from '../lib/climate-service';
+    import type { LocationResult } from '../lib/climate-service';
+
     const locationSearch = document.getElementById('location-search') as HTMLInputElement;
     const btnSearchLocation = document.getElementById('btnSearchLocation') as HTMLButtonElement;
     const locationResults = document.getElementById('location-results');
@@ -94,18 +97,7 @@ const { quickZones = defaultQuickZones } = Astro.props;
     const lonInput = document.getElementById('lon') as HTMLInputElement;
     const tzInput = document.getElementById('tz') as HTMLInputElement;
 
-    const API_URL = 'http://localhost:5000';
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    interface LocationResult {
-        display: string;
-        lat: number;
-        lon: number;
-        tz: string;
-        name: string;
-        admin1?: string;
-        country: string;
-    }
 
     async function searchLocations(query: string) {
         if (!query || query.length < 2) {
@@ -113,18 +105,17 @@ const { quickZones = defaultQuickZones } = Astro.props;
             locationResults?.classList.add('hidden');
             return;
         }
-        
+
         if (btnSearchLocation) {
             btnSearchLocation.disabled = true;
             btnSearchLocation.textContent = '⏳';
         }
-        
+
         try {
-            const response = await fetch(`${API_URL}/api/geocode?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
-            
-            if (data.results && data.results.length > 0) {
-                showLocationResults(data.results);
+            const results = await searchLocationsAPI(query);
+
+            if (results.length > 0) {
+                showLocationResults(results);
             } else {
                 if (locationResults) {
                     locationResults.innerHTML = '<div class="location-item"><em>No results found</em></div>';
@@ -145,21 +136,21 @@ const { quickZones = defaultQuickZones } = Astro.props;
 
     function showLocationResults(results: LocationResult[]) {
         if (!locationResults) return;
-        
+
         locationResults.innerHTML = results.map(r => `
-            <div class="location-item" 
-                 data-name="${r.display}" 
-                 data-lat="${r.lat}" 
+            <div class="location-item"
+                 data-name="${r.display}"
+                 data-lat="${r.lat}"
                  data-lon="${r.lon}"
                  data-tz="${r.tz}">
                 <div class="name">${r.name}</div>
                 <div class="detail">${r.admin1 ? r.admin1 + ', ' : ''}${r.country}</div>
             </div>
         `).join('');
-        
+
         locationResults.classList.add('active');
         locationResults.classList.remove('hidden');
-        
+
         locationResults.querySelectorAll('.location-item').forEach(item => {
             item.addEventListener('click', () => selectLocation(item as HTMLElement));
         });
@@ -170,12 +161,12 @@ const { quickZones = defaultQuickZones } = Astro.props;
         const lat = parseFloat(item.dataset.lat || '0');
         const lon = parseFloat(item.dataset.lon || '0');
         const tz = item.dataset.tz || '';
-        
+
         if (zonaInput) zonaInput.value = name;
         if (latInput) latInput.value = String(lat);
         if (lonInput) lonInput.value = String(lon);
         if (tzInput) tzInput.value = tz;
-        
+
         if (locationName) locationName.textContent = name;
         if (locationCoords) locationCoords.textContent = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
         if (locationSelected) {
@@ -183,7 +174,7 @@ const { quickZones = defaultQuickZones } = Astro.props;
             locationSelected.classList.remove('hidden');
             locationSelected.style.display = 'flex';
         }
-        
+
         locationResults?.classList.remove('active');
         locationResults?.classList.add('hidden');
         if (locationSearch) locationSearch.value = '';
@@ -233,12 +224,12 @@ const { quickZones = defaultQuickZones } = Astro.props;
         btn.addEventListener('click', () => {
             const element = btn as HTMLElement;
             const name = element.textContent || '';
-            
+
             if (zonaInput) zonaInput.value = element.dataset.zona || '';
             if (latInput) latInput.value = element.dataset.lat || '';
             if (lonInput) lonInput.value = element.dataset.lon || '';
             if (tzInput) tzInput.value = element.dataset.tz || '';
-            
+
             if (locationName) locationName.textContent = name;
             if (locationCoords) locationCoords.textContent = `Lat: ${element.dataset.lat}, Lon: ${element.dataset.lon}`;
             if (locationSelected) {

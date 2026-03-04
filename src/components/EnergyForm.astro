@@ -64,7 +64,8 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
 </div>
 
 <script>
-    const API_URL = 'http://localhost:5000';
+    import { fetchClimateData, calculateEnergyMetrics, generateCSV } from '../lib/climate-service';
+
     const form = document.getElementById('form');
     const btnExport = document.getElementById('btnExport');
     const zonaInput = document.getElementById('zona') as HTMLInputElement;
@@ -80,77 +81,44 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: { show } }));
     }
 
-    interface AnalysisData {
-        metrics: {
-            avg_temp: number;
-            max_temp: number;
-            extreme_heat_days: number;
-            avg_radiation: number;
-            optimal_solar_days: number;
-            avg_humidity: number;
-        };
-        charts: {
-            temperature: string;
-            solar: string;
-        };
-    }
-
     form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const userTypeSelect = document.getElementById('user_type') as HTMLSelectElement;
         const daysInput = document.getElementById('days') as HTMLInputElement;
-        
-        const userType = userTypeSelect?.value;
+
         const zona = zonaInput?.value;
         const lat = latInput?.value ? parseFloat(latInput.value) : null;
         const lon = lonInput?.value ? parseFloat(lonInput.value) : null;
         const tz = tzInput?.value || null;
         const days = parseInt(daysInput?.value || '30');
-        
+
         if (!zona) {
             showAlert('Please select or search for a location');
             return;
         }
-        
+
         if (days < 7 || days > 365) {
             showAlert('Days must be between 7 and 365');
             return;
         }
-        
+
         showLoading(true);
-        
+
         try {
-            const requestBody: Record<string, any> = {
-                user_type: userType,
-                zona: zona,
-                days: days
-            };
-            
-            if (lat !== null && lon !== null) {
-                requestBody.lat = lat;
-                requestBody.lon = lon;
-                if (tz) requestBody.tz = tz;
-            }
-            
-            const response = await fetch(`${API_URL}/api/analyze`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP Error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                window.dispatchEvent(new CustomEvent('show-results', { detail: data }));
-                showAlert('✅ Analysis completed successfully', 'success');
-            } else {
-                throw new Error(data.error || 'Unknown error');
-            }
+            const climateData = await fetchClimateData(zona, days, lat, lon, tz);
+            const metrics = calculateEnergyMetrics(climateData);
+
+            window.dispatchEvent(new CustomEvent('show-results', {
+                detail: {
+                    success: true,
+                    metrics,
+                    climateData,
+                    zone: zona,
+                    parameters: { user_type: userTypeSelect?.value, zone: zona, days },
+                }
+            }));
+            showAlert('✅ Analysis completed successfully', 'success');
         } catch (error: any) {
             console.error('Error:', error);
             showAlert(`❌ Error: ${error.message}`);
@@ -166,44 +134,19 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
         const tz = tzInput?.value || null;
         const daysInput = document.getElementById('days') as HTMLInputElement;
         const days = parseInt(daysInput?.value || '30');
-        
+
         if (!zona) {
             showAlert('Please select or search for a location');
             return;
         }
-        
+
         const exportBtn = btnExport as HTMLButtonElement;
         exportBtn.disabled = true;
         exportBtn.textContent = '⏳ Exporting...';
-        
+
         try {
-            const requestBody: Record<string, any> = { zona, days };
-            if (lat !== null && lon !== null) {
-                requestBody.lat = lat;
-                requestBody.lon = lon;
-                if (tz) requestBody.tz = tz;
-            }
-            
-            const response = await fetch(`${API_URL}/api/export-csv`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error exporting CSV');
-            }
-            
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `energy_${zona}_${days}days_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
+            const climateData = await fetchClimateData(zona, days, lat, lon, tz);
+            generateCSV(climateData, zona, days);
             showAlert('✅ CSV downloaded successfully', 'success');
         } catch (error: any) {
             console.error('Error:', error);
@@ -211,16 +154,6 @@ const { defaultDays = 30, minDays = 7, maxDays = 365 } = Astro.props;
         } finally {
             exportBtn.disabled = false;
             exportBtn.innerHTML = '<span>📥</span> Export CSV Data';
-        }
-    });
-
-    window.addEventListener('load', async () => {
-        try {
-            const response = await fetch(`${API_URL}/api/health`);
-            if (!response.ok) throw new Error('Backend not available');
-            console.log('✅ Connected to backend');
-        } catch (error) {
-            showAlert('⚠️ Cannot connect to backend. Make sure it is running on localhost:5000');
         }
     });
 </script>
